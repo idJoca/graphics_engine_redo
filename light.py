@@ -3,7 +3,7 @@ import helper
 
 class Light():
 
-    def __init__(self, direction=[0, 0, -1], pos=[0, 0, 1], color=(0, 255, 0), light_intensity=0.5):
+    def __init__(self, direction=[0, 0, -1], pos=[0, 0, 1], color=(0, 255, 0), light_intensity=0.9):
         """
         Light's class
         """
