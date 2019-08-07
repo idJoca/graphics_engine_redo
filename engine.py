@@ -155,21 +155,16 @@ class Engine():
             else:
                 model.transform_mat = np.dot(model.transform_mat, rotate_matrix_z(angle, degrees))
 
-    def draw_triangles(self, faces, intensity):
+    def draw_triangles(self, model, faces, intensity):
         for vertices in faces:
-            shadow = int(255 * intensity[self.index])
-            shadow = shadow if shadow < 255 else 255
-            shadow = shadow if shadow > 0 else 0
+            shadow = (intensity[self.index] + model.color) / 2
+            shadow = np.where(shadow > 255, 255, shadow)
             pygame.gfxdraw.aapolygon(self.canvas,
                                      vertices,
-                                     (shadow,
-                                      shadow,
-                                      shadow))
+                                     (shadow))
             pygame.gfxdraw.filled_polygon(self.canvas,
                                      vertices,
-                                     (shadow,
-                                      shadow,
-                                      shadow))
+                                     (shadow))
             self.index += 1
 
     def draw(self, model):
@@ -188,13 +183,16 @@ class Engine():
             raise NoLightsLoadedError
         lights = self.loaded_lights
         dist = np.linalg.norm([light.pos for light in lights] - normals, axis=1)
-        intensity = np.dot([light.direction for light in lights], normals.T).reshape(-1)
-        intensity /= (dist + 1) ** 32
-        intensity += np.dot([light.direction for light in lights], normals.T).reshape(-1)
-        intensity *= [light.light_intensity ** 2 for light in lights]
-        intensity *= -1
+        dist = np.average(dist[:, np.newaxis], axis=1)
+        lights_dir = [light.direction for light in lights]
+        lights_int = np.sum([light.light_intensity ** 2 for light in lights])
+        colors = np.sum([light.color for light in lights], axis=0, dtype=float) / lights.size
+        scattering = np.dot(lights_dir, normals.T).T.sum(1)
+        intensity = 2 * scattering / ((dist + 1) ** 64)
+        intensity *= -lights_int
+        intensity = np.multiply(intensity[:, None], colors)
         self.index = 0
-        self.draw_triangles(points, intensity)
+        self.draw_triangles(model, points, intensity)
         model.transform_mat = np.identity(4, dtype=float)
 
     def render(self):

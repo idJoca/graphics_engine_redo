@@ -1,6 +1,5 @@
 import numpy as np
 import math
-from numba import jit
 
 def get_projection_mat(aspect_ratio, camera):
     fov = camera.fov

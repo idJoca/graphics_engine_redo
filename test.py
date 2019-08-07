@@ -23,7 +23,7 @@ class Main():
         self.width = screen_details.current_w
         self.height = screen_details.current_h
         self.engine = engine.Engine(self.canvas)
-        self.engine.load_model("../Models/teapot.obj", "model")
+        self.engine.load_model("teddy.obj", "model")
         self.engine.load_light()
     def start(self, _range=None):
         self.clock = pygame.time.Clock()
@@ -32,13 +32,13 @@ class Main():
         offset = 0.1
         while self._continue_flag is True:
             self.canvas.fill((0, 0, 0))
-            self.engine.translate("model", [0, -2, -math.cos(offset/10) * 2 - 8])
+            self.engine.translate("model", [0, 0, -50])
             self.engine.rotate_y("model", offset)
             self.engine.render()
             offset += 1
             pygame.display.flip()
             self.clock.tick(30)
-            # print(self.clock.get_fps())
+            print(self.clock.get_fps())
             for event in pygame.event.get():
                 # Quit the program if the use close the windows
                 if (event.type == pygame.QUIT):
