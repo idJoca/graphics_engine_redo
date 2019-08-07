@@ -7,8 +7,8 @@ class Model():
         """
         Model's class
         """
-        self.faces = np.array(faces, dtype=float)
-        self.transformed_faces = np.zeros_like(self.faces)
+        self.faces = np.array(faces, dtype=float, order='F')
+        self.transformed_faces = np.zeros_like(self.faces, order='F')
         self.transform_mat = np.identity(4, dtype=float)
     
     def load_model_from_file(file_path):

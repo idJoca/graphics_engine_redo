@@ -18,7 +18,7 @@ class Engine():
         self.loaded_models_dict = {}
         self.loaded_lights = np.zeros(1, dtype=np.object, order='F')
         self.loaded_lights_dict = {}
-        self.vectorized_draw = np.vectorize(self.draw)
+        self.vectorized_draw = np.vectorize(self.draw, otypes=[np.object])
         if (camera is None):
             self.camera = Camera()
         else:
@@ -157,9 +157,9 @@ class Engine():
 
     def draw_triangles(self, faces, intensity):
         for vertices in faces:
-            shadow = (255 * -intensity[self.index])
-            shadow = shadow if shadow > 0 else 0
+            shadow = int(255 * intensity[self.index])
             shadow = shadow if shadow < 255 else 255
+            shadow = shadow if shadow > 0 else 0
             pygame.gfxdraw.aapolygon(self.canvas,
                                      vertices,
                                      (shadow,
@@ -189,8 +189,10 @@ class Engine():
         lights = self.loaded_lights
         dist = np.linalg.norm([light.pos for light in lights] - normals, axis=1)
         intensity = np.dot([light.direction for light in lights], normals.T).reshape(-1)
-        intensity *= [light.light_intensity for light in lights]
-        intensity /= (dist) ** 0.5 + 0.1
+        intensity /= (dist + 1) ** 32
+        intensity += np.dot([light.direction for light in lights], normals.T).reshape(-1)
+        intensity *= [light.light_intensity ** 2 for light in lights]
+        intensity *= -1
         self.index = 0
         self.draw_triangles(points, intensity)
         model.transform_mat = np.identity(4, dtype=float)
@@ -204,4 +206,4 @@ class Engine():
         view_mat = self.camera.camera_matrix()
         view_mat = np.linalg.inv(view_mat)
         self.view_projection_mat = np.dot(projection_mat, view_mat)
-        [self.draw(model) for model in self.loaded_models]
+        self.vectorized_draw(self.loaded_models)
