@@ -47,7 +47,7 @@ def compute_normals(model):
         return normal[mask]
 
 def projection(view_projection_model_mat, model):
-    projected_faces = np.dot(model.faces, view_projection_model_mat)
+    projected_faces = np.dot(model.faces, view_projection_model_mat.T)
     clipped_faces = clip(projected_faces)
     normalized_faces = (clipped_faces /
                       np.where(clipped_faces[:, :, 3, None] != 0,
@@ -159,7 +159,7 @@ def rotation_any_axis(axis, desired_angle, axis_point, degrees):
     tz[3][3] = 1
     inverse_tz = np.linalg.inv(tz)
 
-    rotation_z = rotate_matrix_z(desired_angle)
+    rotation_z = rotate_matrix_z(desired_angle, degrees)
 
     if (axis_point.any()):
         tp = translate_mat(axis_point * -1)

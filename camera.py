@@ -3,7 +3,7 @@ import math
 
 class Camera():
 
-    def __init__(self, fov=90, z_near=0.1, z_far=100,
+    def __init__(self, fov=60, z_near=0.1, z_far=100,
                  pos=[0, 0, -1], left=[1, 0, 0], up=[0, 1, 0], forward=[0, 0, -1]):
         """
         Camera's class

@@ -13,7 +13,7 @@ class Engine():
         self.width = canvas.get_width()
         self.height = canvas.get_height()
         self.canvas = canvas
-        self.aspect_ratio = self.height / self.width
+        self.aspect_ratio = self.width / self.height
         self.loaded_models = np.zeros(1, dtype=np.object, order='F')
         self.loaded_models_dict = {}
         self.loaded_lights = np.zeros(1, dtype=np.object, order='F')
@@ -69,7 +69,7 @@ class Engine():
                 raise InexistentIdentifierError
             index = self.loaded_models_dict[identifier]
             model = self.loaded_models[index]
-            model.transform_mat = np.dot(model.transform_mat, translate_mat(translation_vector))
+            model.transform_mat = np.dot(translate_mat(translation_vector), model.transform_mat)
     
     def scale(self, identifier, scaling_vector, model=True):
         """
@@ -88,7 +88,7 @@ class Engine():
                 raise InvalidVectorError
             index = self.loaded_models_dict[identifier]
             model = self.loaded_models[index]
-            model.transform_mat = np.dot(model.transform_mat, scale_mat(scaling_vector))
+            model.transform_mat = np.dot(scale_mat(scaling_vector), model.transform_mat)
 
     def rotate_any(self, identifier, axis, angle, axis_point=[0, 0, 0], degrees=True, model=True):
         """
@@ -104,7 +104,7 @@ class Engine():
                 raise InvalidVectorError
             index = self.loaded_models_dict[identifier]
             model = self.loaded_models[index]
-            model.transform_mat = np.dot(model.transform_mat, rotation_any_axis(axis, angle, axis_point, degrees))
+            model.transform_mat = np.dot(rotation_any_axis(axis, angle, axis_point, degrees), model.transform_mat)
     
     def rotate_x(self, identifier, angle, degrees=True, row_order=False, model=True):
         """
@@ -120,7 +120,7 @@ class Engine():
             if (row_order is True):
                 model.transform_mat = np.dot(model.transform_mat, np.linalg.inv(rotate_matrix_x(angle, degrees)))
             else:
-                model.transform_mat = np.dot(model.transform_mat, rotate_matrix_x(angle, degrees))
+                model.transform_mat = np.dot(rotate_matrix_x(angle, degrees), model.transform_mat)
 
 
     def rotate_y(self, identifier, angle, degrees=True, row_order=False, model=True):
@@ -155,10 +155,10 @@ class Engine():
             else:
                 model.transform_mat = np.dot(model.transform_mat, rotate_matrix_z(angle, degrees))
 
-    def draw_triangles(self, model, faces, intensity):
+    def draw_triangles(self, model, faces, lights_color, lights_intensity):
         for vertices in faces:
-            shadow = (intensity[self.index] + model.color) / 2
-            shadow = np.where(shadow > 255, 255, shadow)
+            color = np.array(model.color, dtype=float) / 255
+            shadow = (lights_color[self.index] * color * lights_intensity[self.index]) * 255
             pygame.gfxdraw.aapolygon(self.canvas,
                                      vertices,
                                      (shadow))
@@ -173,7 +173,7 @@ class Engine():
         calculates the lights intensity on the model,
         draw the mesh and resets the transform_mat of the model
         """
-        view_projection_model_mat = np.dot(model.transform_mat.T, self.view_projection_mat)
+        view_projection_model_mat = np.dot(self.view_projection_mat, model.transform_mat)
         projection(view_projection_model_mat, model)
         normals = compute_normals(model)
         view_port(model, self.width, self.height)
@@ -182,17 +182,24 @@ class Engine():
         if (self.loaded_lights.size == 0):
             raise NoLightsLoadedError
         lights = self.loaded_lights
-        dist = np.linalg.norm([light.pos for light in lights] - normals, axis=1)
+        spec = np.linalg.norm([light.pos for light in lights] - normals, axis=1)
+        spec = np.average(spec[:, np.newaxis], axis=1)
+
+        dist = np.linalg.norm([light.pos for light in lights] - np.sum(model.transformed_faces[:, :, :3], 1) / 3, axis=1)
         dist = np.average(dist[:, np.newaxis], axis=1)
+
         lights_dir = [light.direction for light in lights]
         lights_int = np.sum([light.light_intensity ** 2 for light in lights])
         colors = np.sum([light.color for light in lights], axis=0, dtype=float) / lights.size
         scattering = np.dot(lights_dir, normals.T).T.sum(1)
-        intensity = 2 * scattering / ((dist + 1) ** 64)
-        intensity *= -lights_int
-        intensity = np.multiply(intensity[:, None], colors)
+        intensity = 2 * scattering / ((spec + 1) ** 32)
+        fade = 1 / (1 + abs((dist) ** 0.5))
+        intensity *= -lights_int * fade
+        lights_color = np.multiply(intensity[:, None], colors)
+        lights_color = np.interp(lights_color, [lights_color.min(), lights_color.max() + np.nextafter(0, 1)], [0, 255]) / 255
+        intensity = np.clip(intensity, 0, 1)
         self.index = 0
-        self.draw_triangles(model, points, intensity)
+        self.draw_triangles(model, points, lights_color, intensity)
         model.transform_mat = np.identity(4, dtype=float)
 
     def render(self):

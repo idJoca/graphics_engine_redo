@@ -2,6 +2,8 @@ import pygame
 import engine
 import light
 import math
+import helper
+
 
 class Main():
     _continue_flag = True
@@ -24,10 +26,7 @@ class Main():
         self.height = screen_details.current_h
         self.engine = engine.Engine(self.canvas)
         self.engine.load_model("teapot.obj", "teapot")
-        self.engine.load_model("teapot.obj", "teapot2")
-        self.engine.loaded_models[1].color = [255, 0, 255]
-        self.engine.load_light()
-        light_test = light.Light(color=(255, 0, 0))
+        light_test = light.Light(color=(255, 255, 255), pos=[0, 0, 1])
         self.engine.load_light(light_test, identifier="main2")
     def start(self, _range=None):
         self.clock = pygame.time.Clock()
@@ -36,10 +35,7 @@ class Main():
         offset = 0.1
         while self._continue_flag is True:
             self.canvas.fill((0, 0, 0))
-            self.engine.translate("teapot", [-3, -2, -10])
-            self.engine.translate("teapot2", [3, -2, -10])
-            self.engine.rotate_y("teapot", offset)
-            self.engine.rotate_y("teapot2", offset)
+            self.engine.translate("teapot", [0, -2, -offset/10 - 5])
             self.engine.render()
             offset += 1
             pygame.display.flip()
