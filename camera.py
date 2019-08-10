@@ -24,7 +24,7 @@ class Camera():
         camera_matrix[:3, 1] = self.up[:]
         camera_matrix[:3, 2] = self.forward[:]
         camera_matrix[:3, 3] = self.pos[:]
-        camera_matrix = np.dot(camera_matrix, self.transformations)
+        camera_matrix = np.dot(self.transformations, camera_matrix)
         return camera_matrix
     
     def translate(self, amount_array):
@@ -70,7 +70,7 @@ class Camera():
     def rotate(self, yaw, pitch, degrees=True):
         rotation_mat_y = helper.rotate_matrix_y(yaw, degrees)
         rotation_mat_x = helper.rotate_matrix_y(pitch, degrees)
-        rotation_mat = np.dot(rotation_mat_x, rotation_mat_y)
+        rotation_mat = np.dot(rotation_mat_y, rotation_mat_x)
         self.transformations = rotation_mat
 
     def rotate_around_mouse(self, pitch, yaw, degrees=True):
