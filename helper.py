@@ -34,16 +34,17 @@ def compute_normals(model):
                    model.transformed_faces[:, 1, 2] +
                    model.transformed_faces[:, 2, 2]) / 3
         sorted_keys = np.argsort(sorting)
-        model.transformed_faces = model.transformed_faces[sorted_keys]
-        vector_a = (model.transformed_faces[:, 1, :3] -
-                    model.transformed_faces[:, 0, :3])
-        vector_b = (model.transformed_faces[:, 2, :3] -
-                    model.transformed_faces[:, 0, :3])
+        sorted_faces =  model.transformed_faces[sorted_keys]
+        vector_a = (sorted_faces[:, 1, :3] -
+                    sorted_faces[:, 0, :3])
+        vector_b = (sorted_faces[:, 2, :3] -
+                    sorted_faces[:, 0, :3])
         normal = np.cross(vector_a, vector_b)
         normal = normalized(normal)
-        x = np.multiply(normal, model.transformed_faces[:, 0, :3]).sum(1)
+        x = np.multiply(normal, sorted_faces[:, 0, :3]).sum(1)
         mask = x > 0
-        model.transformed_faces = model.transformed_faces[mask]
+        model.transformed_faces = sorted_faces[mask]
+        model.sorted_faces = sorted_faces[mask]
         return normal[mask]
 
 def projection(view_projection_model_mat, model):
@@ -59,6 +60,12 @@ def view_port(model, width, height):
     model.transformed_faces[:, :, 1] += 1
     model.transformed_faces[:, :, 0] *= (width - 1) * 0.5
     model.transformed_faces[:, :, 1] *= (height - 1) * 0.5
+
+def apply_lightning(engine, model, normals):  
+    model_casted_color = [light.apply_lightning(engine, model, normals) for light in engine.loaded_lights]
+    model_casted_color = np.mean(model_casted_color, axis=0)
+    model_casted_color = np.clip(model_casted_color, 0, 255)
+    model.face_colors = np.multiply(model_casted_color, model.color) / 255
 
 def base_transform():
     """

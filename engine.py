@@ -13,7 +13,7 @@ class Engine():
         self.width = canvas.get_width()
         self.height = canvas.get_height()
         self.canvas = canvas
-        self.aspect_ratio = self.height / self.width
+        self.aspect_ratio = self.width / self.height
         self.loaded_models = np.zeros(1, dtype=np.object, order='F')
         self.loaded_models_dict = {}
         self.loaded_lights = np.zeros(1, dtype=np.object, order='F')
@@ -48,7 +48,7 @@ class Engine():
             light = Light()
         else:
             light = light
-        if (self.loaded_lights.size == 1):
+        if not (self.loaded_lights.any()):
             self.loaded_lights[0] = light
         else:
             self.loaded_lights = np.append(self.loaded_lights, light)
@@ -155,16 +155,14 @@ class Engine():
             else:
                 model.transform_mat = np.dot(model.transform_mat, rotate_matrix_z(angle, degrees))
 
-    def draw_triangles(self, model, faces, intensity):
+    def draw_triangles(self, model, faces):
         for vertices in faces:
-            shadow = (intensity[self.index] + model.color) / 2
-            shadow = np.where(shadow > 255, 255, shadow)
             pygame.gfxdraw.aapolygon(self.canvas,
                                      vertices,
-                                     (shadow))
+                                     (model.face_colors[self.index]))
             pygame.gfxdraw.filled_polygon(self.canvas,
                                      vertices,
-                                     (shadow))
+                                     (model.face_colors[self.index]))
             self.index += 1
 
     def draw(self, model):
@@ -179,20 +177,9 @@ class Engine():
         view_port(model, self.width, self.height)
         points = model.transformed_faces[:, :, 0:2]
         points = points.reshape(-1, 3, 2)
-        if (self.loaded_lights.size == 0):
-            raise NoLightsLoadedError
-        lights = self.loaded_lights
-        dist = np.linalg.norm([light.pos for light in lights] - normals, axis=1)
-        dist = np.average(dist[:, np.newaxis], axis=1)
-        lights_dir = [light.direction for light in lights]
-        lights_int = np.sum([light.light_intensity ** 2 for light in lights])
-        colors = np.sum([light.color for light in lights], axis=0, dtype=float) / lights.size
-        scattering = np.dot(lights_dir, normals.T).T.sum(1)
-        intensity = 2 * scattering / ((dist + 1) ** 64)
-        intensity *= -lights_int
-        intensity = np.multiply(intensity[:, None], colors)
+        apply_lightning(self, model, normals)
         self.index = 0
-        self.draw_triangles(model, points, intensity)
+        self.draw_triangles(model, points)
         model.transform_mat = np.identity(4, dtype=float)
 
     def render(self):
@@ -200,6 +187,8 @@ class Engine():
         Renders the whole scene. The view_projection_mat is the same
         to all models. Therefore, it's computed only once, per loop.
         """
+        if not (self.loaded_lights.any()):
+            raise NoLightsLoadedError
         projection_mat = get_projection_mat(self.aspect_ratio, self.camera)
         view_mat = self.camera.camera_matrix()
         view_mat = np.linalg.inv(view_mat)

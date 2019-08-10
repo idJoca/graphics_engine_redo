@@ -7,9 +7,11 @@ class Model():
         """
         Model's class
         """
-        self.faces = np.array(faces, dtype=float, order='F')
-        self.transformed_faces = np.zeros_like(self.faces, order='F')
+        self.faces = np.array(faces, dtype=float)
+        self.transformed_faces = np.zeros_like(self.faces)
+        self.sorted_faces = []
         self.transform_mat = np.identity(4, dtype=float)
+        self.face_colors = np.zeros((self.faces.shape[0], 3), dtype=float)
         self.color = [255, 255, 255]
     
     def load_model_from_file(file_path):
