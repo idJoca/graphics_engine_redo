@@ -28,8 +28,8 @@ class Main():
         pygame.mouse.set_visible(False)
         self.engine = engine.Engine(self.canvas)
         self.engine.load_model("teapot.obj", "teapot")
-        directional_light_kwargs = {'color': (255, 255, 255),
-                                    'direction': [0, 0.5, -1],
+        directional_light_kwargs = {'color': (255, 0, 0),
+                                    'direction': [0, 0, -1],
                                     'intensity': 0.9,
                                     'type': 'directional'}
         directional_light = light.Light(**directional_light_kwargs)
@@ -40,6 +40,15 @@ class Main():
                                 'type': 'ambient'}
         ambient_light = light.Light(**ambient_light_kwargs)
         self.engine.load_light(ambient_light, identifier="ambient_light")
+
+
+        specular_light_kwargs = {'color': (255, 255, 255),
+                                'intensity': 0.5,
+                                'type': 'specular',
+                                 'direction': [0, 0, -1],
+                                 'strength': 32}
+        specular_light = light.Light(**specular_light_kwargs)
+        self.engine.load_light(specular_light, identifier="specular_light")
     def start(self, _range=None):
         self.clock = pygame.time.Clock()
 

@@ -33,8 +33,9 @@ class Light():
         elif (self.type == 'point'):
             pass
         elif (self.type == 'specular'):
-            spec = np.dot(normals, engine.camera.forward)
-            scattering = np.dot(normals, self.direction)
-            specular_intensity = 2 * scattering * ((spec + 1) ** self.strength) * -self.intensity
-            specular_light = specular_intensity[:, None] * self.color
+            spec = np.dot(-normals, engine.camera.forward)
+            dir = np.dot(np.insert(self.direction, 3, 1, 0), engine.camera.transformations)
+            scattering = np.dot(normals, dir[:3])
+            specular_intensity = scattering ** self.strength + spec
+            specular_light = specular_intensity[:, None] * self.color * self.intensity
             return specular_light
